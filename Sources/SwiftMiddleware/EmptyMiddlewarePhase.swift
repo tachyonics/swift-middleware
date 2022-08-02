@@ -33,7 +33,7 @@ public struct EmptyMiddlewarePhase<InputType, OutputType, HandlerType: Middlewar
 where HandlerType.InputType == InputType, HandlerType.OutputType == OutputType {
     public let next: HandlerType
 
-    init(next: HandlerType) {
+    public init(next: HandlerType) {
         self.next = next
     }
 }
