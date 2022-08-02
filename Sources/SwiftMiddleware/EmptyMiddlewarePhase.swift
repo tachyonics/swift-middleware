@@ -23,7 +23,7 @@ public protocol EmptyMiddlewarePhaseProtocol {
 }
 
 public extension EmptyMiddlewarePhaseProtocol {
-    func create<HandlerType: MiddlewareHandlerProtocol>(next: HandlerType) -> some EmptyMiddlewarePhaseProtocol
+    static func create<HandlerType: MiddlewareHandlerProtocol>(next: HandlerType) -> some EmptyMiddlewarePhaseProtocol
     where HandlerType.InputType == InputType, HandlerType.OutputType == OutputType {
         return EmptyMiddlewarePhase(next: next)
     }
