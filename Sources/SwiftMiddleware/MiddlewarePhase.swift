@@ -25,6 +25,10 @@ public protocol MiddlewarePhaseProtocol {
 }
 
 public extension MiddlewarePhaseProtocol {
+    func asHandler() -> some MiddlewareHandlerProtocol {
+        return ComposedMiddlewarePhaseHandler(next: self.next, with: self.with)
+    }
+    
     func intercept<MiddlewareType: MiddlewareProtocol>(middleware: MiddlewareType) -> some MiddlewarePhaseProtocol
     where MiddlewareType.InputType == InputType, MiddlewareType.OutputType == OutputType {
         let newNext = ComposedMiddlewarePhaseHandler(next: self.next, with: self.with)

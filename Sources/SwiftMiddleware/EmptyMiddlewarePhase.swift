@@ -23,6 +23,10 @@ public protocol EmptyMiddlewarePhaseProtocol {
 }
 
 public extension EmptyMiddlewarePhaseProtocol {
+    func asHandler() -> some MiddlewareHandlerProtocol {
+        return self.next
+    }
+    
     func intercept<MiddlewareType: MiddlewareProtocol>(middleware: MiddlewareType) -> some MiddlewarePhaseProtocol
     where MiddlewareType.InputType == InputType, MiddlewareType.OutputType == OutputType {        
         return MiddlewarePhase(next: self.next, with: middleware)
