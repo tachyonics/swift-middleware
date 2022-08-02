@@ -15,7 +15,7 @@
 import Foundation
 
 public extension MiddlewareHandlerProtocol {
-    func intercept<MiddlewareType: MiddlewareProtocol>(with middleware: MiddlewareType) -> some MiddlewarePhaseProtocol
+    func interceptInNewPhase<MiddlewareType: MiddlewareProtocol>(with middleware: MiddlewareType) -> some MiddlewarePhaseProtocol
     where MiddlewareType.InputType == InputType, MiddlewareType.OutputType == OutputType {        
         return MiddlewarePhase(next: self, with: middleware)
     }
