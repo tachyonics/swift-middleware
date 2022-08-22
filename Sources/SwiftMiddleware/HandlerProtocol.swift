@@ -12,7 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public protocol HandlerProtocol {
+public protocol HandlerProtocol: _MiddlewareSendable {
     associatedtype InputType
     associatedtype OutputType
     associatedtype ContextType

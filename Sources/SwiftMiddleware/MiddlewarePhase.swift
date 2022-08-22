@@ -37,20 +37,21 @@ public extension MiddlewarePhaseProtocol {
     }
 }
 
-struct MiddlewarePhase<InputType, OutputType, MiddlewareType: MiddlewareProtocol, HandlerType: MiddlewareHandlerProtocol>: MiddlewarePhaseProtocol
+public struct MiddlewarePhase<InputType, OutputType, MiddlewareType: MiddlewareProtocol, HandlerType: MiddlewareHandlerProtocol>: MiddlewarePhaseProtocol
 where MiddlewareType.InputType == InputType, MiddlewareType.OutputType == OutputType,
 HandlerType.InputType == InputType, HandlerType.OutputType == OutputType {
-    let with: MiddlewareType
-    let next: HandlerType
+    public let with: MiddlewareType
+    public let next: HandlerType
     
-    init(next: HandlerType, with: MiddlewareType) {
+    public init(next: HandlerType, with: MiddlewareType) {
         self.next = next
         self.with = with
     }
 }
 
 // handler chain, used to decorate a handler with middleware
-struct ComposedMiddlewarePhaseHandler<InputType, OutputType, MiddlewareType: MiddlewareProtocol, HandlerType: MiddlewareHandlerProtocol>
+public struct ComposedMiddlewarePhaseHandler<InputType, OutputType, MiddlewareType: MiddlewareProtocol,
+                                             HandlerType: MiddlewareHandlerProtocol>: Sendable
 where MiddlewareType.InputType == InputType, MiddlewareType.OutputType == OutputType,
 HandlerType.InputType == InputType, HandlerType.OutputType == OutputType {
     // the next handler to call
