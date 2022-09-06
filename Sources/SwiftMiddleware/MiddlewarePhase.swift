@@ -14,7 +14,7 @@
 
 import Foundation
 
-public protocol MiddlewarePhaseProtocol {
+public protocol MiddlewarePhaseProtocol: _MiddlewareSendable {
     associatedtype InputType
     associatedtype OutputType
     associatedtype MiddlewareType: MiddlewareProtocol where MiddlewareType.InputType == InputType, MiddlewareType.OutputType == OutputType

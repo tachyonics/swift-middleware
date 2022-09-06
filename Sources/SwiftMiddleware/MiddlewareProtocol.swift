@@ -26,9 +26,6 @@ public protocol MiddlewareProtocol: _MiddlewareSendable {
     associatedtype InputType
     associatedtype OutputType
     
-    /// The middleware ID
-    var id: String { get }
-    
 #if compiler(>=5.6)
     @Sendable
     func handle<HandlerType: MiddlewareHandlerProtocol>(

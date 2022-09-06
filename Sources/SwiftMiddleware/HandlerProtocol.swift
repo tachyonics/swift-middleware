@@ -12,6 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if compiler(<5.7)
 public protocol HandlerProtocol: _MiddlewareSendable {
     associatedtype InputType
     associatedtype OutputType
@@ -23,3 +24,16 @@ public protocol HandlerProtocol: _MiddlewareSendable {
 public protocol MiddlewareHandlerProtocol: HandlerProtocol where ContextType == MiddlewareContext {
     
 }
+#else
+public protocol HandlerProtocol<InputType, OutputType, ContextType>: _MiddlewareSendable {
+    associatedtype InputType
+    associatedtype OutputType
+    associatedtype ContextType
+       
+    func handle(input: InputType, context: ContextType) async throws -> OutputType
+}
+
+public protocol MiddlewareHandlerProtocol<InputType, OutputType, ContextType>: HandlerProtocol where ContextType == MiddlewareContext {
+    
+}
+#endif
