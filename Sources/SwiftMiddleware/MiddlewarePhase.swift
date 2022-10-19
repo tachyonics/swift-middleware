@@ -50,8 +50,8 @@ HandlerType.InputType == InputType, HandlerType.OutputType == OutputType {
 }
 
 // handler chain, used to decorate a handler with middleware
-public struct ComposedMiddlewarePhaseHandler<InputType, OutputType, MiddlewareType: MiddlewareProtocol,
-                                             HandlerType: MiddlewareHandlerProtocol>: Sendable
+struct ComposedMiddlewarePhaseHandler<InputType, OutputType, MiddlewareType: MiddlewareProtocol,
+                                      HandlerType: MiddlewareHandlerProtocol>: Sendable
 where MiddlewareType.InputType == InputType, MiddlewareType.OutputType == OutputType,
 HandlerType.InputType == InputType, HandlerType.OutputType == OutputType {
     // the next handler to call

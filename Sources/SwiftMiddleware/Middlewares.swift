@@ -15,8 +15,8 @@
 import Foundation
 
 public enum Middlewares {
-    func startingPhase<HandlerType: MiddlewareHandlerProtocol, MiddlewareType: MiddlewareProtocol>(next handler: HandlerType,
-                                                                                                   with middleware: MiddlewareType)
+    public func startingPhase<HandlerType: MiddlewareHandlerProtocol, MiddlewareType: MiddlewareProtocol>(next handler: HandlerType,
+                                                                                                          with middleware: MiddlewareType)
     -> some MiddlewarePhaseProtocol
     where MiddlewareType.InputType == HandlerType.InputType, MiddlewareType.OutputType == HandlerType.OutputType {
         return MiddlewarePhase(next: handler, with: middleware)
