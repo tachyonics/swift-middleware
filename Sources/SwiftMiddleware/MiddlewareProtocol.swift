@@ -16,16 +16,16 @@ public typealias Middleware<Input, Output, Context> = (Input, Context, _ next: (
 
 #if compiler(>=5.7)
 public protocol MiddlewareProtocol<OriginalInput, OriginalOutput, Context>: TransformMiddlewareProtocol
-where OriginalInput == TransformedInput,
-      OriginalOutput == TransformedOutput {
-    typealias Input = OriginalInput
-    typealias Output = OriginalOutput
+where OriginalInput == TransformedInput, OriginalInput == Input,
+      OriginalOutput == TransformedOutput, OriginalOutput == Output {
+    associatedtype Input
+    associatedtype Output
 }
 #else
 public protocol MiddlewareProtocol: TransformMiddlewareProtocol
-where OriginalInput == TransformedInput,
-      OriginalOutput == TransformedOutput {
-    typealias Input = OriginalInput
-    typealias Output = OriginalOutput
+where OriginalInput == TransformedInput, OriginalInput == Input,
+      OriginalOutput == TransformedOutput, OriginalOutput == Output {
+    associatedtype Input
+    associatedtype Output
 }
 #endif
