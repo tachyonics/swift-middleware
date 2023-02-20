@@ -31,7 +31,8 @@ public struct MiddlewareBuilder {
     }
 }
 
-public func MiddlewareStack(@MiddlewareBuilder _ builder: () -> some MiddlewareProtocol) -> some MiddlewareProtocol {
+public func MiddlewareStack<Input, Output, Context>(@MiddlewareBuilder _ builder: () -> some MiddlewareProtocol<Input, Output, Context>)
+-> some MiddlewareProtocol<Input, Output, Context> {
     return builder()
 }
 #endif
