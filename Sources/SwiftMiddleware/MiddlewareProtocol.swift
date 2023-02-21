@@ -15,17 +15,21 @@
 public typealias Middleware<Input, Output, Context> = (Input, Context, _ next: (Input, Context) async throws -> Output) async throws -> Output
 
 #if compiler(>=5.7)
-public protocol MiddlewareProtocol<OriginalInput, OriginalOutput, Context>: TransformMiddlewareProtocol
-where OriginalInput == TransformedInput, OriginalInput == Input,
-      OriginalOutput == TransformedOutput, OriginalOutput == Output {
+public protocol MiddlewareProtocol<Input, Output, Context> {
     associatedtype Input
     associatedtype Output
+    associatedtype Context
+    
+    func handle(_ input: Input, context: Context, next: (Input, Context) async throws -> Output) async throws
+    -> Output
 }
 #else
-public protocol MiddlewareProtocol: TransformMiddlewareProtocol
-where OriginalInput == TransformedInput, OriginalInput == Input,
-      OriginalOutput == TransformedOutput, OriginalOutput == Output {
+public protocol MiddlewareProtocol {
     associatedtype Input
     associatedtype Output
+    associatedtype Context
+    
+    func handle(_ input: Input, context: Context, next: (Input, Context) async throws -> Output) async throws
+    -> Output
 }
 #endif

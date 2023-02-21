@@ -81,8 +81,8 @@ where InwardTransformType.Input == OuterMiddlewareType.Input,
 public func MiddlewareTransformStack<OriginalInput, TransformedInput, OriginalOutput, TransformedOutput, Context>(
     inwardTransform: some TransformProtocol<OriginalInput, TransformedInput, Context>,
     outwardTransform: some TransformProtocol<OriginalOutput, TransformedOutput, Context>,
-    @MiddlewareBuilder _ outerBuilder: () -> some MiddlewareProtocol<OriginalInput, TransformedOutput, Context>,
-    @MiddlewareBuilder _ innerBuilder: () -> some MiddlewareProtocol<TransformedInput, OriginalOutput, Context>)
+    @MiddlewareBuilder outer outerBuilder: () -> some MiddlewareProtocol<OriginalInput, TransformedOutput, Context>,
+    @MiddlewareBuilder inner innerBuilder: () -> some MiddlewareProtocol<TransformedInput, OriginalOutput, Context>)
 -> some TransformMiddlewareProtocol<OriginalInput, TransformedInput, OriginalOutput, TransformedOutput, Context> {
     return TransformMiddleware(inwardTransform: inwardTransform, outwardTransform: outwardTransform,
                                outerMiddleware: outerBuilder(), innerMiddleware: innerBuilder())
