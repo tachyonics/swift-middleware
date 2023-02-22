@@ -33,58 +33,58 @@ public protocol TransformMiddlewareProtocol<OriginalInput, TransformedInput, Ori
 }
 
 internal struct TransformMiddleware<OuterMiddlewareType: MiddlewareProtocol,
-                                    InwardTransformType: TransformProtocol,
-                                    OutwardTransformType: TransformProtocol,
+                                    RequestTransformType: TransformProtocol,
+                                    ResponseTransformType: TransformProtocol,
                                     InnerMiddlewareType: MiddlewareProtocol>: TransformMiddlewareProtocol
-where InwardTransformType.Input == OuterMiddlewareType.Input,
-      OutwardTransformType.Output == OuterMiddlewareType.Output,
-      InwardTransformType.Output == InnerMiddlewareType.Input,
-      OutwardTransformType.Input == InnerMiddlewareType.Output,
-      InwardTransformType.Context == InnerMiddlewareType.Context,
-      OutwardTransformType.Context == InnerMiddlewareType.Context,
+where RequestTransformType.Input == OuterMiddlewareType.Input,
+      ResponseTransformType.Output == OuterMiddlewareType.Output,
+      RequestTransformType.Output == InnerMiddlewareType.Input,
+      ResponseTransformType.Input == InnerMiddlewareType.Output,
+      RequestTransformType.Context == InnerMiddlewareType.Context,
+      ResponseTransformType.Context == InnerMiddlewareType.Context,
       OuterMiddlewareType.Context == InnerMiddlewareType.Context{
     typealias Context = InnerMiddlewareType.Context
-    typealias OriginalInput = InwardTransformType.Input
-    typealias TransformedInput = InwardTransformType.Output
-    typealias OriginalOutput = OutwardTransformType.Input
-    typealias TransformedOutput  = OutwardTransformType.Output
+    typealias OriginalInput = RequestTransformType.Input
+    typealias TransformedInput = RequestTransformType.Output
+    typealias OriginalOutput = ResponseTransformType.Input
+    typealias TransformedOutput  = ResponseTransformType.Output
     
     let outerMiddleware: OuterMiddlewareType
-    let inwardTransform: InwardTransformType
-    let outwardTransform: OutwardTransformType
+    let requestTransform: RequestTransformType
+    let responseTransform: ResponseTransformType
     let innerMiddleware: InnerMiddlewareType
     
-    init(inwardTransform: InwardTransformType, outwardTransform: OutwardTransformType,
+    init(requestTransform: RequestTransformType, responseTransform: ResponseTransformType,
          outerMiddleware: OuterMiddlewareType, innerMiddleware: InnerMiddlewareType) {
         self.outerMiddleware = outerMiddleware
-        self.inwardTransform = inwardTransform
-        self.outwardTransform = outwardTransform
+        self.requestTransform = requestTransform
+        self.responseTransform = responseTransform
         self.innerMiddleware = innerMiddleware
     }
     
-    func handle(_ input: InwardTransformType.Input, context: InnerMiddlewareType.Context,
+    func handle(_ input: RequestTransformType.Input, context: InnerMiddlewareType.Context,
                 next: (InnerMiddlewareType.Input, InnerMiddlewareType.Context) async throws-> InnerMiddlewareType.Output) async throws
-    -> OutwardTransformType.Output {
+    -> ResponseTransformType.Output {
         return try await self.outerMiddleware.handle(input, context: context) { inputFromOuterMiddleware, contextFromOuterMiddleware in
-            let transformedInput = try await self.inwardTransform.transform(inputFromOuterMiddleware, context: contextFromOuterMiddleware)
+            let transformedInput = try await self.requestTransform.transform(inputFromOuterMiddleware, context: contextFromOuterMiddleware)
             
             let originalOutput = try await self.innerMiddleware.handle(transformedInput,
                                                                        context: context) { inputFromInnerMiddlware, contextFromInnerMiddlware in
                 try await next(inputFromInnerMiddlware, contextFromInnerMiddlware)
             }
             
-            return try await self.outwardTransform.transform(originalOutput, context: context)
+            return try await self.responseTransform.transform(originalOutput, context: context)
         }
     }
 }
 
 public func MiddlewareTransformStack<OriginalInput, TransformedInput, OriginalOutput, TransformedOutput, Context>(
-    inwardTransform: some TransformProtocol<OriginalInput, TransformedInput, Context>,
-    outwardTransform: some TransformProtocol<OriginalOutput, TransformedOutput, Context>,
+    requestTransform: some TransformProtocol<OriginalInput, TransformedInput, Context>,
+    responseTransform: some TransformProtocol<OriginalOutput, TransformedOutput, Context>,
     @MiddlewareBuilder outer outerBuilder: () -> some MiddlewareProtocol<OriginalInput, TransformedOutput, Context>,
     @MiddlewareBuilder inner innerBuilder: () -> some MiddlewareProtocol<TransformedInput, OriginalOutput, Context>)
 -> some TransformMiddlewareProtocol<OriginalInput, TransformedInput, OriginalOutput, TransformedOutput, Context> {
-    return TransformMiddleware(inwardTransform: inwardTransform, outwardTransform: outwardTransform,
+    return TransformMiddleware(requestTransform: requestTransform, responseTransform: responseTransform,
                                outerMiddleware: outerBuilder(), innerMiddleware: innerBuilder())
 }
 #else

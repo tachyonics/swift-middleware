@@ -62,10 +62,10 @@ final class MiddlewareTests: XCTestCase {
     }
     
     func testTripleTransformedStack() async throws {
-        let stack = MiddlewareTransformStack(inwardTransform: StringBoxingTransformer(),
-                                             outwardTransform: StringUnboxingTransformer()) {
+        let stack = MiddlewareTransformStack(requestTransform: StringBoxingTransformer(),
+                                             responseTransform: StringUnboxingTransformer()) {
             AddSuffix("foo")
-        } _: {
+        } inner: {
             AddSuffixBoxed("bar")
             AddSuffixBoxed("baz")
         }
