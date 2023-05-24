@@ -12,24 +12,27 @@
 //
 //===----------------------------------------------------------------------===//
     
-public typealias Middleware<Input, Output, Context> = (Input, Context, _ next: (Input, Context) async throws -> Output) async throws -> Output
+public typealias Middleware<Input, OutputWriter, Context> = (Input, OutputWriter, Context, _ next: (Input, OutputWriter, Context) async throws -> Void) async throws -> Void
 
-#if compiler(>=5.7)
-public protocol MiddlewareProtocol<Input, Output, Context> {
-    associatedtype Input
-    associatedtype Output
-    associatedtype Context
+public protocol TransformingMiddlewareProtocol<IncomingInput, OutgoingInput, IncomingOutputWriter, OutgoingOutputWriter, IncomingContext, OutgoingContext> {
+    associatedtype IncomingInput
+    associatedtype OutgoingInput
+    associatedtype IncomingOutputWriter
+    associatedtype OutgoingOutputWriter
+    associatedtype IncomingContext
+    associatedtype OutgoingContext
     
-    func handle(_ input: Input, context: Context, next: (Input, Context) async throws -> Output) async throws
-    -> Output
+    func handle(_ input: IncomingInput,
+                outputWriter: IncomingOutputWriter,
+                context: IncomingContext,
+                next: (OutgoingInput, OutgoingOutputWriter, OutgoingContext) async throws -> Void) async throws
 }
-#else
-public protocol MiddlewareProtocol {
+
+public protocol MiddlewareProtocol<Input, OutputWriter, Context>: TransformingMiddlewareProtocol
+where IncomingInput == Input, OutgoingInput == Input,
+IncomingOutputWriter == OutputWriter, OutgoingOutputWriter == OutputWriter,
+IncomingContext == Context, OutgoingContext == Context {
     associatedtype Input
-    associatedtype Output
+    associatedtype OutputWriter
     associatedtype Context
-    
-    func handle(_ input: Input, context: Context, next: (Input, Context) async throws -> Output) async throws
-    -> Output
 }
-#endif

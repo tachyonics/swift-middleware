@@ -12,37 +12,39 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if compiler(>=5.7)
 @available(macOS 13.0.0, *)
-public struct DynamicMiddlewareStack<Input, Output, Context>: MiddlewareProtocol {
-    typealias Stack = Array<(String, any MiddlewareProtocol<Input, Output, Context>)>
+public struct DynamicMiddlewareStack<Input, OutputWriter, Context>: MiddlewareProtocol {
+    typealias Stack = Array<(String, any MiddlewareProtocol<Input, OutputWriter, Context>)>
 
-    var stack: [(String, any MiddlewareProtocol<Input, Output, Context>)]
+    var stack: [(String, any MiddlewareProtocol<Input, OutputWriter, Context>)]
 
-    public init(_ list: any MiddlewareProtocol<Input, Output, Context>...) {
+    public init(_ list: any MiddlewareProtocol<Input, OutputWriter, Context>...) {
         self.stack = list.enumerated().map { i, m in ("\(i)", m) }
     }
-
-    public func handle(_ input: Input, context: Context, next: (Input, Context) async throws -> Output) async throws -> Output {
+    
+    public func handle(_ input: Input,
+                       outputWriter: OutputWriter,
+                       context: Context,
+                       next: (Input, OutputWriter, Context) async throws -> Void) async throws {
         let iterator = stack.makeIterator()
-        return try await self.run(input, context: context, iterator: iterator, finally: next)
+        try await self.run(input, outputWriter: outputWriter, context: context, iterator: iterator, finally: next)
     }
 
     func run(
         _ input: Input,
+        outputWriter: OutputWriter,
         context: Context,
         iterator: Stack.Iterator,
-        finally: (Input, Context) async throws -> Output
-    ) async throws -> Output {
+        finally: (Input, OutputWriter, Context) async throws -> Void
+    ) async throws {
         var iterator = iterator
         switch iterator.next() {
         case .none:
-            return try await finally(input, context)
+            try await finally(input, outputWriter, context)
         case .some(let middleware):
-            return try await middleware.1.handle(input, context: context) { (input, context) in
-                try await self.run(input, context: context, iterator: iterator, finally: finally)
+            try await middleware.1.handle(input, outputWriter: outputWriter, context: context) { (input, outputWriter, context) in
+                try await self.run(input, outputWriter: outputWriter, context: context, iterator: iterator, finally: finally)
             }
         }
     }
 }
-#endif

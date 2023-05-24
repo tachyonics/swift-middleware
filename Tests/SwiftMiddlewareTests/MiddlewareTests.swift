@@ -17,34 +17,48 @@ import XCTest
 
 final class MiddlewareTests: XCTestCase {
     func testExample() async throws {
-
         let middleware = AddSuffix("foo")
+        let outputWriter = StringWriter()
 
-        let result = try await middleware.handle("", context: FakeContext(), next: { str, _ in str })
+        try await middleware.handle("", outputWriter: outputWriter,
+                                    context: FakeContext(), next: { str, outputWriter, _ in await outputWriter.write(str) })
+        let result = await outputWriter.theString
+        
         XCTAssertEqual(result, "foofoo")
     }
 
     func testTuple() async throws {
-        let middleware = MiddlewareTuple(AddSuffix("foo"), AddSuffix("bar"))
+        let middleware = TransformingMiddlewareTuple(AddSuffix("foo"), AddSuffix("bar"))
+        let outputWriter = StringWriter()
+        
+        try await middleware.handle("", outputWriter: outputWriter,
+                                    context: FakeContext(), next: { str, outputWriter, _ in await outputWriter.write(str + "haha") })
+        let result = await outputWriter.theString
 
-        let result = try await middleware.handle("", context: FakeContext(), next: { str, _ in str + "haha" })
         XCTAssertEqual(result, "foobarhahabarfoo")
     }
 
     func testTriple() async throws {
-        let middleware = MiddlewareTuple(AddSuffix("foo"), MiddlewareTuple(AddSuffix("bar"), AddSuffix("baz")))
+        let middleware = TransformingMiddlewareTuple(AddSuffix("foo"), TransformingMiddlewareTuple(AddSuffix("bar"), AddSuffix("baz")))
+        let outputWriter = StringWriter()
 
-        let result = try await middleware.handle("", context: FakeContext(), next: { str, _ in str + "haha" })
+        try await middleware.handle("", outputWriter: outputWriter,
+                                    context: FakeContext(), next: { str, outputWriter, _ in await outputWriter.write(str + "haha") })
+        let result = await outputWriter.theString
+        
         XCTAssertEqual(result, "foobarbazhahabazbarfoo")
     }
-    
-#if compiler(>=5.7)
+   
     func testSingletonStack() async throws {
         let stack = MiddlewareStack {
             AddSuffix("foo")
         }
         
-        let result = try await stack.handle("", context: FakeContext(), next: { str, _ in str })
+        let outputWriter = StringWriter()
+
+        try await stack.handle("", outputWriter: outputWriter,
+                               context: FakeContext(), next: { str, outputWriter, _ in await outputWriter.write(str) })
+        let result = await outputWriter.theString
 
         XCTAssertEqual(result, "foofoo")
     }
@@ -56,50 +70,51 @@ final class MiddlewareTests: XCTestCase {
             AddSuffix("baz")
         }
         
-        let result = try await stack.handle("", context: FakeContext(), next: { str, _ in str + "haha" })
+        let outputWriter = StringWriter()
+
+        try await stack.handle("", outputWriter: outputWriter,
+                               context: FakeContext(), next: { str, outputWriter, _ in await outputWriter.write(str + "haha") })
+        let result = await outputWriter.theString
 
         XCTAssertEqual(result, "foobarbazhahabazbarfoo")
     }
     
-    func testTripleTransformedStack() async throws {
-        let stack = MiddlewareTransformStack(requestTransform: StringBoxingTransformer(),
-                                             responseTransform: StringUnboxingTransformer()) {
+    func testTripleStackWithTransform() async throws {
+        let stack = MiddlewareStack {
             AddSuffix("foo")
-        } inner: {
-            AddSuffixBoxed("bar")
+            AddSuffix("bar")
+            BoxingMiddleware()
             AddSuffixBoxed("baz")
         }
         
-        let result = try await stack.handle("", context: FakeContext(), next: { stringBox, _ in StringBox(stringBox.contents + "haha") })
+        let outputWriter = StringWriter()
+
+        try await stack.handle("", outputWriter: outputWriter,
+                               context: FakeContext(), next: { stringBox, outputWriter, _ in await outputWriter.write(StringBox(stringBox.contents + "haha")) })
+        let result = await outputWriter.theString
 
         XCTAssertEqual(result, "foobarbazhahabazbarfoo")
     }
-
+    
     @available(macOS 13.0.0, *)
     func testDynamic() async throws {
         let middleware = DynamicMiddlewareStack(AddSuffix("foo"), AddSuffix("bar"), AddSuffix("baz"))
+        let outputWriter = StringWriter()
 
-        let result = try await middleware.handle("", context: FakeContext(), next: { str, _ in str + "haha" })
+        try await middleware.handle("", outputWriter: outputWriter, context: FakeContext(), next:  { str, outputWriter, _ in await outputWriter.write(str + "haha") })
+        let result = await outputWriter.theString
         XCTAssertEqual(result, "foobarbazhahabazbarfoo")
     }
-#endif
 }
 
 struct FakeContext {}
+struct FakeContext2 {}
 
-struct AddSuffix: MiddlewareProtocol {
-    typealias Input = String
-    typealias Output = String
-    typealias Context = FakeContext
-
-    let suffix: String
-
-    init(_ suffix: String) {
-        self.suffix = suffix
-    }
-
-    func handle(_ input: String, context: FakeContext, next: (String, FakeContext) async throws -> String) async throws -> String {
-        try await next(input + self.suffix, context) + self.suffix
+actor StringWriter {
+    private(set) var theString: String = ""
+    
+    func write(_ new: String) {
+        self.theString += new
     }
 }
 
@@ -111,9 +126,17 @@ struct StringBox {
     }
 }
 
-struct AddSuffixBoxed: MiddlewareProtocol {
-    typealias Input = StringBox
-    typealias Output = StringBox
+struct StringBoxWriter {
+    let wrappedWriter: StringWriter
+    
+    func write(_ new: StringBox) async {
+        await self.wrappedWriter.write(new.contents)
+    }
+}
+
+struct AddSuffix: MiddlewareProtocol {
+    typealias Input = String
+    typealias OutputWriter = StringWriter
     typealias Context = FakeContext
 
     let suffix: String
@@ -121,29 +144,50 @@ struct AddSuffixBoxed: MiddlewareProtocol {
     init(_ suffix: String) {
         self.suffix = suffix
     }
-
-    func handle(_ input: StringBox, context: FakeContext, next: (StringBox, FakeContext) async throws -> StringBox) async throws -> StringBox {
-        try await StringBox(next(StringBox(input.contents + self.suffix), context).contents + self.suffix)
-    }
-}
-
-struct StringBoxingTransformer: TransformProtocol {
-    typealias Input = String
-    typealias Output = StringBox
-    typealias Context = FakeContext
     
-    func transform(_ input: String, context: Context) async throws -> StringBox {
-        return StringBox(input)
+    public func handle(_ input: Input,
+                       outputWriter: OutputWriter,
+                       context: Context,
+                       next: (Input, OutputWriter, Context) async throws -> Void) async throws {
+        try await next(input + self.suffix, outputWriter, context)
+        
+        await outputWriter.write(self.suffix)
     }
 }
 
-struct StringUnboxingTransformer: TransformProtocol {
+struct AddSuffixBoxed: MiddlewareProtocol {
     typealias Input = StringBox
-    typealias Output = String
-    typealias Context = FakeContext
+    typealias OutputWriter = StringBoxWriter
+    typealias Context = FakeContext2
+
+    let suffix: String
+
+    init(_ suffix: String) {
+        self.suffix = suffix
+    }
     
-    func transform(_ input: StringBox, context: Context) async throws -> String {
-        return input.contents
+    public func handle(_ input: Input,
+                       outputWriter: OutputWriter,
+                       context: Context,
+                       next: (Input, OutputWriter, Context) async throws -> Void) async throws {
+        try await next(StringBox(input.contents + self.suffix), outputWriter, context)
+        
+        await outputWriter.write(StringBox(self.suffix))
+    }
+}
+
+struct BoxingMiddleware: TransformingMiddlewareProtocol {
+    typealias IncomingInput = String
+    typealias OutgoingInput = StringBox
+    typealias IncomingOutputWriter = StringWriter
+    typealias OutgoingOutputWriter = StringBoxWriter
+    typealias IncomingContext = FakeContext
+    typealias OutgoingContext = FakeContext2
+    
+    func handle(_ input: String, outputWriter: StringWriter, context: FakeContext,
+                next: (StringBox, StringBoxWriter, FakeContext2) async throws -> Void) async throws {
+        let wrappedWriter = StringBoxWriter(wrappedWriter: outputWriter)
+        try await next(StringBox(input), wrappedWriter, FakeContext2())
     }
 }
 
